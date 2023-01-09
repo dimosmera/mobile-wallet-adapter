@@ -1,6 +1,8 @@
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
+    id 'signing'
 }
 
 android {
@@ -33,6 +35,62 @@ android {
     buildFeatures {
         buildConfig = false
     }
+
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
+        }
+    }
+}
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = group
+            artifactId = 'mobile-wallet-adapter-clientlib-ktx'
+            pom {
+                name = 'Mobile Wallet Adapter - Kotlin Client library'
+                description = 'Kotlin Client library for Mobile Wallet Adapter. It implements the client endpoint role of the Mobile Wallet Adapter protocol specification.'
+                url = 'https://github.com/solana-mobile/mobile-wallet-adapter'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'Solana Mobile Engineering'
+                        email = 'eng@solanamobile.com'
+                        organization = 'Solana Mobile Inc.'
+                        organizationUrl = 'https://solanamobile.com'
+                    }
+                }
+                organization {
+                    name = 'Solana Mobile Inc.'
+                    url = 'https://solanamobile.com'
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/solana-mobile/mobile-wallet-adapter.git'
+                    developerConnection = 'scm:git:ssh://github.com/solana-mobile/mobile-wallet-adapter.git'
+                    url = 'https://github.com/solana-mobile/mobile-wallet-adapter/tree/main'
+                }
+            }
+
+            afterEvaluate {
+                from components.release
+            }
+        }
+    }
+}
+
+signing {
+    // Signing private key and password provided by ORG_GRADLE_PROJECT_signingKey and
+    // ORG_GRADLE_PROJECT_signingPassword, respectively
+    def signingKey = findProperty('signingKey')
+    def signingPassword = findProperty('signingPassword')
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign publishing.publications.release
 }
 
 dependencies {

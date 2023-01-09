@@ -2,7 +2,8 @@ name: Android CI
 
 on:
   push:
-    branches: [ main ]
+    # TODO uncomment/update this! 
+    # branches: [ main ]
     paths: [ '.github/**', 'android/**' ]
   pull_request:
     branches: [ main ]
@@ -52,6 +53,7 @@ jobs:
           name: binaries
           path: |
             android/clientlib/build/outputs/aar/*.aar
+            android/clientlib-ktx/build/outputs/aar/*.aar
             android/common/build/outputs/aar/*.aar
             android/fakedapp/build/outputs/apk/**/*.apk
             android/fakewallet/build/outputs/apk/**/*.apk
@@ -99,38 +101,51 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
         run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository -P version=${TAG:1}
 
-  # Note: only runs on 'push' events
-  publish-to-gh-pages:
-    runs-on: ubuntu-latest
-    needs: build
-    concurrency: publish-to-gh-pages
-    if: ${{ github.event_name == 'push' }}
+      # Publish snapshot to Maven Central (testing by Marco)
+      # TODO: this will run on every push, on eany branch for testing, this should not go into main 
+      - name: Publish to Maven Central (snapshot)
+        if: ${{ github.event_name == 'push' }}
+        env:
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.MAVEN_CENTRAL_PUBLISHING_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.MAVEN_CENTRAL_PUBLISHING_PRIVATE_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.MAVEN_CENTRAL_PUBLISHING_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.MAVEN_CENTRAL_PUBLISHING_PASSWORD }}
+          TAG: ${{ "main-SNAPSHOT" }}
+        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository -P version=${TAG:1}
 
-    steps:
-      - name: Update clientlib javadoc
-        uses: solana-mobile/gha-commit-artifact-to-branch@v1
-        with:
-          token: ${{ secrets.UPDATE_GITHUB_PAGES_TOKEN }}
-          branch: gh-pages
-          artifact-name: clientlib-javadoc
-          dest: clientlib
-          commit-message: 'Update clientlib javadoc'
-      - name: Update common javadoc
-        uses: solana-mobile/gha-commit-artifact-to-branch@v1
-        with:
-          token: ${{ secrets.UPDATE_GITHUB_PAGES_TOKEN }}
-          branch: gh-pages
-          artifact-name: common-javadoc
-          dest: common
-          commit-message: 'Update common javadoc'
-      - name: Update walletlib javadoc
-        uses: solana-mobile/gha-commit-artifact-to-branch@v1
-        with:
-          token: ${{ secrets.UPDATE_GITHUB_PAGES_TOKEN }}
-          branch: gh-pages
-          artifact-name: walletlib-javadoc
-          dest: walletlib
-          commit-message: 'Update walletlib javadoc'
+  # Note: only runs on 'push' events
+  # TODO: commented this out cuz I dont wanna publish something that shouldnt be 
+  # publish-to-gh-pages:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   concurrency: publish-to-gh-pages
+  #   if: ${{ github.event_name == 'push' }}
+
+  #   steps:
+  #     - name: Update clientlib javadoc
+  #       uses: solana-mobile/gha-commit-artifact-to-branch@v1
+  #       with:
+  #         token: ${{ secrets.UPDATE_GITHUB_PAGES_TOKEN }}
+  #         branch: gh-pages
+  #         artifact-name: clientlib-javadoc
+  #         dest: clientlib
+  #         commit-message: 'Update clientlib javadoc'
+  #     - name: Update common javadoc
+  #       uses: solana-mobile/gha-commit-artifact-to-branch@v1
+  #       with:
+  #         token: ${{ secrets.UPDATE_GITHUB_PAGES_TOKEN }}
+  #         branch: gh-pages
+  #         artifact-name: common-javadoc
+  #         dest: common
+  #         commit-message: 'Update common javadoc'
+  #     - name: Update walletlib javadoc
+  #       uses: solana-mobile/gha-commit-artifact-to-branch@v1
+  #       with:
+  #         token: ${{ secrets.UPDATE_GITHUB_PAGES_TOKEN }}
+  #         branch: gh-pages
+  #         artifact-name: walletlib-javadoc
+  #         dest: walletlib
+  #         commit-message: 'Update walletlib javadoc'
 
   # Note: only runs on 'release' events
   upload-to-release:
